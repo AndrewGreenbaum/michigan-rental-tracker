@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Michigan Rental Tracker</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card-bg: #2a2a3e;
+    --cost-bg: #1e1e32;
+    --text: #e8e8f0;
+    --text-muted: #8888a0;
+    --text-heading: #ffffff;
+    --border: rgba(255,255,255,0.08);
+    --accent-green: #4caf50;
+    --accent-amber: #ff9800;
+    --accent-red: #ef5350;
+    --accent-gray: #666;
+    --filter-bg: #22223a;
+    --input-bg: #2a2a3e;
+    --input-border: rgba(255,255,255,0.12);
+    --badge-green-bg: rgba(76,175,80,0.15);
+    --badge-amber-bg: rgba(255,152,0,0.15);
+    --badge-red-bg: rgba(239,83,80,0.15);
+    --badge-gray-bg: rgba(100,100,100,0.15);
+    --score-bar-bg: rgba(255,255,255,0.06);
+    --changes-bg: #22223a;
+    --shadow: rgba(0,0,0,0.3);
+  }
+
+  body.light {
+    --bg: #f0f0f5;
+    --card-bg: #ffffff;
+    --cost-bg: #f5f5fa;
+    --text: #222233;
+    --text-muted: #666680;
+    --text-heading: #111122;
+    --border: rgba(0,0,0,0.1);
+    --filter-bg: #e8e8f0;
+    --input-bg: #ffffff;
+    --input-border: rgba(0,0,0,0.15);
+    --badge-green-bg: rgba(76,175,80,0.12);
+    --badge-amber-bg: rgba(255,152,0,0.12);
+    --badge-red-bg: rgba(239,83,80,0.12);
+    --badge-gray-bg: rgba(100,100,100,0.1);
+    --score-bar-bg: rgba(0,0,0,0.06);
+    --changes-bg: #e8e8f0;
+    --shadow: rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 24px;
+    color: var(--text-heading);
+    font-weight: 700;
+  }
+  .header-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .theme-toggle {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+  }
+  .theme-toggle:hover { opacity: 0.8; }
+
+  /* Filters */
+  .filters {
+    background: var(--filter-bg);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: end;
+  }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
+  }
+  .filter-group label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .filter-group input[type="range"] {
+    width: 180px;
+    accent-color: var(--accent-green);
+  }
+  .filter-group select {
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  .filter-value {
+    font-size: 14px;
+    color: var(--text-heading);
+    font-weight: 600;
+  }
+
+  /* Card Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card-bg);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: opacity 0.3s, transform 0.2s, max-height 0.4s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow); }
+  .card.dimmed {
+    opacity: 0.3;
+    order: 999;
+  }
+  .card.dimmed .card-details { display: none; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--badge-green-bg); color: var(--accent-green); }
+  .badge-amber { background: var(--badge-amber-bg); color: var(--accent-amber); }
+  .badge-red { background: var(--badge-red-bg); color: var(--accent-red); }
+  .badge-gray { background: var(--badge-gray-bg); color: var(--accent-gray); }
+
+  .card-address {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 2px;
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .card-price {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 4px;
+  }
+  .card-price .per-person {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 8px;
+  }
+
+  /* Data rows */
+  .data-rows { margin: 14px 0; }
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .data-row:last-child { border-bottom: none; }
+  .data-label { color: var(--text-muted); }
+  .data-value { font-weight: 500; text-align: right; max-width: 60%; }
+  .c-green { color: var(--accent-green); }
+  .c-amber { color: var(--accent-amber); }
+  .c-red { color: var(--accent-red); }
+  .c-gray { color: var(--accent-gray); }
+
+  /* Cost breakdown */
+  .cost-box {
+    background: var(--cost-bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 14px 0;
+  }
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 3px 0;
+    color: var(--text-muted);
+  }
+  .cost-row.total {
+    font-weight: 700;
+    color: var(--text-heading);
+    font-size: 14px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 8px;
+  }
+
+  /* Advisory */
+  .advisory {
+    font-size: 12px;
+    margin: 10px 0;
+    font-style: italic;
+  }
+
+  /* Score bar */
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .score-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--score-bar-bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s;
+  }
+  .score-number {
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* Verdict */
+  .verdict {
+    text-align: center;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+  .verdict-green { background: var(--badge-green-bg); color: var(--accent-green); }
+  .verdict-amber { background: var(--badge-amber-bg); color: var(--accent-amber); }
+  .verdict-red { background: var(--badge-red-bg); color: var(--accent-red); }
+
+  /* Changes section */
+  .changes-section {
+    background: var(--changes-bg);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .changes-section h2 {
+    font-size: 18px;
+    color: var(--text-heading);
+    margin-bottom: 14px;
+  }
+  .change-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .change-item:last-child { border-bottom: none; }
+  .change-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .change-date {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .change-removed { text-decoration: line-through; color: var(--text-muted); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    .filters { flex-direction: column; gap: 14px; }
+    .filter-group input[type="range"] { width: 100%; }
+    .filter-group { min-width: unset; width: 100%; }
+    .header { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>Michigan Rental Tracker</h1>
+      <div class="header-meta">
+        <span id="last-scraped">Last scraped: —</span> &middot;
+        <span id="listing-count">Showing 0 of 0 listings</span>
+      </div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">Light Mode</button>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Max Price</label>
+      <input type="range" id="f-price" min="500" max="5000" step="50" value="5000" oninput="applyFilters()">
+      <span class="filter-value" id="f-price-val">$5,000</span>
+    </div>
+    <div class="filter-group">
+      <label>Max Walk to BBB</label>
+      <input type="range" id="f-bbb" min="1" max="40" step="1" value="40" oninput="applyFilters()">
+      <span class="filter-value" id="f-bbb-val">40 min</span>
+    </div>
+    <div class="filter-group">
+      <label>Beds</label>
+      <select id="f-beds" onchange="applyFilters()">
+        <option value="all">All</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Sort By</label>
+      <select id="f-sort" onchange="applyFilters()">
+        <option value="score">Value Score</option>
+        <option value="price">Price</option>
+        <option value="bbb">Walk to BBB</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="changes-section" id="changes-section">
+    <h2>Recent Changes</h2>
+    <div id="changes-list"></div>
+  </div>
+</div>
+
+<script>
+let db = null;
+let listings = [];
+
+async function init() {
+  try {
+    const res = await fetch('./rental_db.json');
+    db = await res.json();
+  } catch (e) {
+    document.getElementById('grid').innerHTML = '<p style="color:var(--accent-red);grid-column:1/-1">Failed to load rental_db.json</p>';
+    return;
+  }
+  document.getElementById('last-scraped').textContent =
+    'Last scraped: ' + new Date(db.last_scraped).toLocaleString();
+  listings = Object.values(db.listings);
+  applyFilters();
+  renderChanges();
+}
+
+function applyFilters() {
+  const maxPrice = +document.getElementById('f-price').value;
+  const maxBBB = +document.getElementById('f-bbb').value;
+  const beds = document.getElementById('f-beds').value;
+  const sortBy = document.getElementById('f-sort').value;
+
+  document.getElementById('f-price-val').textContent = '$' + maxPrice.toLocaleString();
+  document.getElementById('f-bbb-val').textContent = maxBBB + ' min';
+
+  const matched = [];
+  const dimmed = [];
+
+  for (const l of listings) {
+    const pass = l.price <= maxPrice &&
+      (l.walk_to_bbb == null || l.walk_to_bbb <= maxBBB) &&
+      (beds === 'all' || l.beds === +beds);
+    (pass ? matched : dimmed).push(l);
+  }
+
+  const sortFn = {
+    score: (a, b) => a.value_score - b.value_score,
+    price: (a, b) => a.price - b.price,
+    bbb: (a, b) => (a.walk_to_bbb || 99) - (b.walk_to_bbb || 99),
+  }[sortBy];
+
+  matched.sort(sortFn);
+  dimmed.sort(sortFn);
+
+  document.getElementById('listing-count').textContent =
+    `Showing ${matched.length} of ${listings.length} listings`;
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (const l of matched) grid.appendChild(renderCard(l, false));
+  for (const l of dimmed) grid.appendChild(renderCard(l, true));
+}
+
+function renderCard(l, dimmed) {
+  const card = document.createElement('div');
+  card.className = 'card' + (dimmed ? ' dimmed' : '');
+  card.onclick = () => window.open(l.url, '_blank');
+
+  // Status badge
+  let badgeHTML = '';
+  if (l.waitlist) {
+    badgeHTML = '<span class="badge badge-amber">Waitlisted</span>';
+  } else if (l.status === 'available' && l.value_score <= 35) {
+    badgeHTML = '<span class="badge badge-green">Top pick</span>';
+  } else if (l.status !== 'available') {
+    badgeHTML = '<span class="badge badge-gray">Unavailable</span>';
+  }
+
+  // Walk colors
+  const diagColor = l.walk_to_diag <= 10 ? 'c-green' : l.walk_to_diag <= 15 ? 'c-amber' : 'c-red';
+  const bbbColor = l.walk_to_bbb <= 12 ? 'c-green' : l.walk_to_bbb <= 18 ? 'c-amber' : 'c-red';
+
+  // AC
+  let acText, acColor;
+  if (l.has_ac === 'central') { acText = 'Central'; acColor = 'c-green'; }
+  else if (l.has_ac === 'window') { acText = 'Window'; acColor = 'c-amber'; }
+  else if (l.has_ac === false || l.has_ac === 'no') { acText = 'No'; acColor = 'c-red'; }
+  else { acText = '?'; acColor = 'c-gray'; }
+
+  // Laundry
+  let laundryText, laundryColor;
+  if (l.has_free_laundry) { laundryText = 'Free washer/dryer'; laundryColor = 'c-green'; }
+  else { laundryText = 'On-site / None'; laundryColor = 'c-amber'; }
+
+  // Kitchen
+  const kitchenItems = [];
+  if (l.has_dishwasher) kitchenItems.push('Dishwasher');
+  const kitchenAmenities = (l.amenities || []).filter(a =>
+    /granite|microwave|stainless/i.test(a));
+  kitchenItems.push(...kitchenAmenities.map(a => a));
+  const kitchenText = kitchenItems.length ? kitchenItems.join(', ') : 'Basic';
+  const kitchenColor = kitchenItems.length >= 2 ? 'c-green' : kitchenItems.length === 1 ? 'c-amber' : 'c-gray';
+
+  // Parking
+  let parkingText, parkingColor;
+  if (l.has_free_parking) { parkingText = 'Free'; parkingColor = 'c-green'; }
+  else { parkingText = 'None / Paid'; parkingColor = 'c-red'; }
+
+  // Pets
+  let petColor = 'c-gray';
+  if (l.pet_policy) {
+    if (/no pet/i.test(l.pet_policy)) petColor = 'c-red';
+    else if (/allowed|friendly/i.test(l.pet_policy)) petColor = 'c-green';
+    else petColor = 'c-amber';
+  }
+
+  // Extras
+  const mainAmenities = new Set(['Dishwasher', ...kitchenAmenities]);
+  const extras = (l.amenities || []).filter(a => !mainAmenities.has(a));
+  const extrasLine = [
+    l.sqft ? `${l.sqft} sqft` : null,
+    ...extras
+  ].filter(Boolean).join(', ');
+
+  // Cost breakdown
+  const perPerson = l.beds >= 2 ? Math.round(l.price / 2) : l.price;
+  const utilsEst = l.has_ac === 'central' ? '~$70-85' : '~$55-70';
+  const parkingCost = l.has_free_parking ? '$0 (free)' : '~$75-150';
+  const parkingCostNum = l.has_free_parking ? 0 : 110;
+  const allIn = perPerson + 75 + parkingCostNum;
+
+  // Advisory
+  let advisory = '';
+  const firstSeen = new Date(l.first_seen);
+  const daysSince = Math.floor((Date.now() - firstSeen) / 86400000);
+  if (l.price_history && l.price_history.length > 0) {
+    const oldestPrice = l.price_history[0];
+    const priceYear = oldestPrice.date ? oldestPrice.date.split('-')[0] : null;
+    if (priceYear && +priceYear < new Date().getFullYear()) {
+      advisory = `<div class="advisory c-amber">Price is ${priceYear} data — confirm current rent</div>`;
+    }
+  }
+  if (perPerson > 1200) {
+    advisory += `<div class="advisory c-red">Per-person cost exceeds $1,200/mo budget threshold</div>`;
+  }
+  if (l.waitlist) {
+    advisory += `<div class="advisory c-amber">Currently waitlisted — availability not guaranteed</div>`;
+  }
+
+  // Score bar — flipped: bar width = max(0, 100 - score)%
+  const score = l.value_score;
+  const barWidth = Math.max(0, 100 - score);
+  let scoreColor;
+  if (score <= 40) scoreColor = 'var(--accent-green)';
+  else if (score <= 60) scoreColor = 'var(--accent-amber)';
+  else scoreColor = 'var(--accent-red)';
+
+  // Verdict
+  let verdictText, verdictClass;
+  if (score <= 40) {
+    verdictText = 'Tour + confirm price — strong option';
+    verdictClass = 'verdict-green';
+  } else if (score <= 60) {
+    const target = Math.round(l.price * 0.85);
+    verdictText = `Negotiate to ~$${target.toLocaleString()} or pass`;
+    verdictClass = 'verdict-amber';
+  } else {
+    verdictText = 'Skip — overpriced for location';
+    verdictClass = 'verdict-red';
+  }
+
+  card.innerHTML = `
+    ${badgeHTML}
+    <div class="card-address">${esc(l.address)}</div>
+    <div class="card-subtitle">Michigan Rental</div>
+    <div class="card-price">
+      ~$${l.price.toLocaleString()} /mo
+      ${l.beds >= 2 ? `<span class="per-person">~$${perPerson.toLocaleString()}/person</span>` : ''}
+    </div>
+    <div class="card-details">
+      <div class="data-rows">
+        <div class="data-row"><span class="data-label">Config</span><span class="data-value">${l.beds} BR / ${l.baths} BA</span></div>
+        ${l.walk_to_diag != null ? `<div class="data-row"><span class="data-label">Walk to Diag</span><span class="data-value ${diagColor}">~${l.walk_to_diag}min</span></div>` : ''}
+        ${l.walk_to_bbb != null ? `<div class="data-row"><span class="data-label">Walk to BBB</span><span class="data-value ${bbbColor}">~${l.walk_to_bbb}min</span></div>` : ''}
+        <div class="data-row"><span class="data-label">AC</span><span class="data-value ${acColor}">${acText}</span></div>
+        <div class="data-row"><span class="data-label">Laundry</span><span class="data-value ${laundryColor}">${laundryText}</span></div>
+        <div class="data-row"><span class="data-label">Kitchen</span><span class="data-value ${kitchenColor}">${esc(kitchenText)}</span></div>
+        <div class="data-row"><span class="data-label">Parking</span><span class="data-value ${parkingColor}">${parkingText}</span></div>
+        <div class="data-row"><span class="data-label">Pets</span><span class="data-value ${petColor}">${esc(l.pet_policy || 'Unknown')}</span></div>
+        ${extrasLine ? `<div class="data-row"><span class="data-label">Extras</span><span class="data-value">${esc(extrasLine)}</span></div>` : ''}
+      </div>
+      <div class="cost-box">
+        <div class="cost-row"><span>Rent/person (est.)</span><span>~$${perPerson.toLocaleString()}</span></div>
+        <div class="cost-row"><span>Utils (est.)</span><span>${utilsEst}</span></div>
+        <div class="cost-row"><span>Parking</span><span>${parkingCost}</span></div>
+        <div class="cost-row total"><span>All-in (est.)</span><span>~$${allIn.toLocaleString()}</span></div>
+      </div>
+      ${advisory}
+      <div class="score-bar-wrap">
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:${barWidth}%;background:${scoreColor}"></div>
+        </div>
+        <span class="score-number" style="color:${scoreColor}">${score}</span>
+      </div>
+      <div class="verdict ${verdictClass}">${verdictText}</div>
+    </div>
+  `;
+  return card;
+}
+
+function renderChanges() {
+  const list = document.getElementById('changes-list');
+  if (!db.changes || !db.changes.length) {
+    list.innerHTML = '<p style="color:var(--text-muted)">No changes recorded yet.</p>';
+    return;
+  }
+  const sorted = [...db.changes].sort((a, b) => new Date(b.date) - new Date(a.date));
+  list.innerHTML = sorted.map(c => {
+    let badge, detail;
+    if (c.type === 'new') {
+      badge = '<span class="change-badge badge-green" style="background:var(--badge-green-bg);color:var(--accent-green)">NEW</span>';
+      detail = `<span>${esc(c.address)} — $${(c.price||0).toLocaleString()}</span>`;
+    } else if (c.type === 'price_change') {
+      badge = '<span class="change-badge badge-amber" style="background:var(--badge-amber-bg);color:var(--accent-amber)">PRICE</span>';
+      detail = `<span>${esc(c.address)} — $${(c.old_price||0).toLocaleString()} → $${(c.new_price||0).toLocaleString()}</span>`;
+    } else if (c.type === 'removed') {
+      badge = '<span class="change-badge badge-red" style="background:var(--badge-red-bg);color:var(--accent-red)">REMOVED</span>';
+      detail = `<span class="change-removed">${esc(c.address)}</span>`;
+    } else {
+      badge = '<span class="change-badge badge-gray" style="background:var(--badge-gray-bg);color:var(--accent-gray)">' + esc(c.type.toUpperCase()) + '</span>';
+      detail = `<span>${esc(c.address || '')}</span>`;
+    }
+    return `<div class="change-item">${badge}${detail}<span class="change-date">${esc(c.date)}</span></div>`;
+  }).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  const btn = document.querySelector('.theme-toggle');
+  btn.textContent = document.body.classList.contains('light') ? 'Dark Mode' : 'Light Mode';
+}
+
+init();
+</script>
+</body>
+</html>
